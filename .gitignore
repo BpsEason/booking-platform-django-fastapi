@@ -1,0 +1,62 @@
+# Python / Django
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+*.sqlite3
+db.sqlite3
+/media/
+/staticfiles/
+/backend/.env*
+.django-debug.log
+
+# FastAPI / Redis
+*.log
+/recommendation_engine/.env*
+/redis_data/
+
+# Node.js / Vue.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+frontend/.env*
+frontend/dist/
+frontend/.vite/
+frontend/.cache/
+
+# Docker / Compose
+docker_volumes/
+*.pid
+*.sock
+.docker/
+.dockerignore
+docker-compose.override.yml
+.env
+*.env
+
+# VSCode / IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test / Coverage
+coverage/
+htmlcov/
+*.cover
+*.py,cover
+.tox/
+.nox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.log
+
+# Mac / OS 系統檔案
+.DS_Store
+Thumbs.db
