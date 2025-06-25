@@ -10,18 +10,18 @@
 
 ```mermaid
 graph TD
-    A[Client Browser] -->|HTTP/HTTPS| B(Nginx)
-    B -->|Reverse Proxy| C[Django Backend]
-    B -->|Reverse Proxy| D[FastAPI Recommendation Engine]
-    B -->|Static Files| E[Vue.js Frontend]
-    C -->|SQL| F[MySQL Database]
-    C -->|Cache/Queue| G[Redis]
-    D -->|Cache| G
-    C -->|Internal API Calls| D
-    H[Prometheus] -->|Scrape Metrics| C
-    H -->|Scrape Metrics| D
-    H -->|Scrape Metrics| I[MySQL Exporter]
-    J[Grafana] -->|Query| H
+    A[客戶端瀏覽器] -->|HTTP/HTTPS| B(Nginx)
+    B -->|反向代理| C[Django 後端]
+    B -->|反向代理| D[FastAPI 推薦引擎]
+    B -->|靜態檔案| E[Vue.js 前端]
+    C -->|SQL 查詢| F[MySQL 資料庫]
+    C -->|快取/佇列| G[Redis]
+    D -->|快取| G
+    C -->|內部 API 呼叫| D
+    H[Prometheus] -->|收集指標| C
+    H -->|收集指標| D
+    H -->|收集指標| I[MySQL 匯出器]
+    J[Grafana] -->|查詢| H
 ```
 
 ### 架構說明
