@@ -128,6 +128,60 @@ docker exec -it booking-platform-django-fastapi_django_backend python manage.py 
 ### 推薦引擎
 - 透過 FastAPI 的 `/api/recommend/get-recommendations/` 取得推薦，支援 A/B 測試（調整 `.env_fastapi` 的 `AB_TEST_STRATEGY_VARIANTS`）。
 
+## 面試常見問題 (Q&A)
+
+### Q1: 這個專案的整體架構是什麼？為什麼選擇這樣的技術棧 (Django, FastAPI, Vue.js, Docker)？
+**答**：  
+這個專案採用**微服務導向的架構**。  
+- **Django (Python)** 作為主要後端，負責核心業務邏輯（如使用者、商家、預約管理）、認證授權、管理後台等。選擇 Django 是因為它成熟穩定、開發效率高、生態系統豐富，且內建了完善的 ORM 和管理介面，非常適合處理複雜的業務邏輯和數據模型。  
+- **FastAPI (Python)** 作為獨立的推薦引擎服務。選擇 FastAPI 是因為它基於 ASGI，天生支援異步，性能極高，並且內建 OpenAPI/Swagger UI 文檔生成，非常適合構建獨立的、高性能的 API 服務，特別是對於需要快速響應的推薦演算法。  
+- **Vue.js** 作為前端框架，用於構建互動式、響應式的使用者介面。選擇 Vue.js 是因為它學習曲線平緩、易於整合、組件化開發效率高，能夠快速構建豐富的使用者體驗。  
+- **Docker 與 Docker Compose** 用於整個專案的容器化。這使得開發環境與生產環境保持一致，簡化了部署流程，解決了依賴管理問題，並提升了專案的可攜性與隔離性。
+
+### Q2: 為什麼在後端同時使用了 Django 和 FastAPI，而不是只用一個？它們各自的職責是什麼？
+**答**：  
+同時使用 Django 和 FastAPI 是基於**職責分離**和**性能優化**的考量：  
+- **Django** 負責**交易性**和**業務複雜性較高**的部分。例如，使用者註冊登入、商家資料管理、預約排程等，這些操作通常涉及多個模型的複雜關聯、事務性操作以及管理員介面。Django 的 ORM 和 Admin 系統在這裡展現其優勢。  
+- **FastAPI** 則專注於**計算密集型**或**高吞吐量**的特定任務，例如推薦服務。推薦演算法可能需要快速處理大量數據並即時響應，FastAPI 的異步能力和高性能使其成為理想選擇。透過將推薦邏輯抽離為獨立服務，我們可以獨立擴展它，不影響 Django 主服務的穩定性。
+
+### Q3: 專案中如何處理資料庫初始化和遷移？為什麼採用現在的方式？
+**答**：  
+專案的資料庫初始化主要有兩種方式：  
+1. **初始階段**：將完整的 SQL schema 腳本（如 `init_database_schema.sql`）放置在 `mysql_init_scripts/` 目錄中。Docker Compose 啟動 MySQL 服務時，會自動執行這些腳本來建立初始的資料庫結構。這樣可以確保資料庫在容器首次啟動時即具備完整的結構，特別適合從現有 SQL 設計開始的專案。  
+2. **後續開發與維護**：資料庫結構的變更則完全依賴 **Django 的遷移系統** (`makemigrations` 和 `migrate`)。這是一種程式碼驅動的資料庫管理方式，將資料庫結構的變化轉換為一系列 Python 腳本。優點包括：  
+   - **版本控制**：遷移腳本可被 Git 管理，方便追蹤資料庫歷史變化。  
+   - **團隊協作**：團隊成員能自動應用或回滾資料庫變更。  
+   - **數據庫獨立性**：雖然目前使用 MySQL，但 Django 遷移理論上支援更換其他資料庫系統。  
+採用兩種方式結合是為了兼顧**首次快速啟動**與**長期維護的便利性**。
+
+### Q4: 專案的監控 (Prometheus, Grafana) 是如何整合的？它提供了哪些關鍵指標？
+**答**：  
+專案整合了 **Prometheus** 和 **Grafana** 進行全面監控。  
+- **Prometheus** 作為時序資料庫，負責收集各個服務的指標數據。我們會配置 Django 和 FastAPI 應用程式暴露監控端點（例如 `/metrics`），Prometheus 會定期從這些端點拉取數據。Nginx 的存取日誌也可以被處理成指標。  
+- **Grafana** 是一個強大的數據可視化工具，連接到 Prometheus 作為資料源。我們可以在 Grafana 中創建儀表板，實時監控關鍵性能指標 (KPIs)。  
+**關鍵指標包括**：  
+- **應用程式健康狀況**：CPU 使用率、記憶體消耗、網路流量。  
+- **請求吞吐量**：每秒請求數 (RPS)。  
+- **響應時間**：API 響應延遲 (p95, p99)。  
+- **錯誤率**：HTTP 5xx 錯誤、應用程式日誌中的錯誤數量。  
+- **資料庫性能**：查詢時間、連接數、慢查詢。  
+- **特定業務指標**：預約成功率、新用戶註冊數、推薦引擎的查詢次數等。  
+這套監控系統有助於及早發現問題、優化性能、並支持容量規劃。
+
+### Q5: 如果要將此專案部署到生產環境，您會考慮哪些額外的步驟或安全措施？
+**答**：  
+部署到生產環境時，會考慮以下額外步驟和安全措施：  
+1. **環境變數安全**：將所有敏感信息（如資料庫密碼、API 金鑰、Django `SECRET_KEY`）從 `.env` 檔案移除，改用 Docker Secrets、Kubernetes Secrets、Vault 或專用的環境變數管理服務。  
+2. **禁用 DEBUG 模式**：確保 Django 的 `DEBUG` 設置為 `False`，避免洩露敏感信息。  
+3. **配置 `ALLOWED_HOSTS` 和 CORS**：精確配置 Django 的 `ALLOWED_HOSTS` 和 CORS 設置 (`CORS_ALLOWED_ORIGINS`，FastAPI 的 `allow_origins`)，只允許來自授權域名的請求，防止 CSRF 和跨域攻擊。  
+4. **HTTPS**：部署 SSL 憑證，強制所有流量通過 HTTPS，加密客戶端與服務器之間的通訊。可以使用 Nginx 配置 Let's Encrypt 或其他 SSL 服務。  
+5. **日誌集中化**：整合 ELK Stack (Elasticsearch, Logstash, Kibana) 或 Grafana Loki，將所有服務的日誌集中收集、分析和可視化，便於故障排除和安全審計。  
+6. **備份策略**：建立定期的資料庫備份和恢復策略，確保數據安全。  
+7. **資源限制**：在 Docker Compose 或 Kubernetes 中為每個服務設定 CPU 和記憶體限制，防止單個服務耗盡所有資源。  
+8. **安全性更新**：定期更新所有依賴庫和基礎鏡像到最新版本，修補已知的安全漏洞。  
+9. **防火牆與網路隔離**：配置伺服器防火牆，只開放必要的端口；將資料庫和內部服務放置在私有網路中，不直接暴露在公共網路。  
+10. **壓力測試與性能優化**：在部署前進行壓力測試，識別性能瓶頸並進行優化，確保應用程式在高負載下的穩定性。
+
 ## 關鍵代碼片段（含註解）
 
 ### Django 設定 (`backend/core_project/settings.py`)
@@ -276,149 +330,4 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
 # 簡單的 A/B 測試邏輯，根據 user_id 分配測試組
 def get_ab_test_variant(user_id: int) -> str:
     if not AB_TEST_STRATEGY_VARIANTS:
-        return "default"
-    variants = list(AB_TEST_STRATEGY_VARIANTS.keys())
-    weights = list(AB_TEST_STRATEGY_VARIANTS.values())
-    random.seed(user_id)
-    return random.choices(variants, weights=weights, k=1)[0]
-
-# 推薦端點，根據使用者取得商家推薦
-@app.get("/get-recommendations/", response_model=List[Dict])
-async def get_recommendations(current_user: TokenData = Depends(get_current_user)):
-    user_id = current_user.user_id
-    user_type = current_user.user_type
-    
-    if user_type == 'merchant_admin':
-        return JSONResponse(content=[], status_code=status.HTTP_200_OK)
-
-    ab_variant = get_ab_test_variant(user_id)
-    print(f"User {user_id} is in A/B test variant: {ab_variant}")
-
-    # 模擬推薦邏輯，從 Redis 取得快取資料或生成預設資料
-    recommended_merchants_data = []
-    if r:
-        dummy_merchants_json = r.get("dummy_recommended_merchants")
-        if dummy_merchants_json:
-            recommended_merchants_data = json.loads(dummy_merchants_json)
-        else:
-            recommended_merchants_data = [
-                {"id": 1, "name": "Cozy Coffee Shop", "address": "123 Main St", "description": "Great coffee and ambiance.", "image": "http://example.com/coffee.jpg"},
-                {"id": 2, "name": "Zen Spa", "address": "456 Oak Ave", "description": "Relaxing massage and wellness services.", "image": "http://example.com/spa.jpg"},
-                {"id": 3, "name": "Quick Bites Diner", "address": "789 Pine Ln", "description": "Classic American comfort food.", "image": "http://example.com/diner.jpg"}
-            ]
-            r.set("dummy_recommended_merchants", json.dumps(recommended_merchants_data), ex=3600)
-    else:
-        recommended_merchants_data = [
-            {"id": 1, "name": "Cozy Coffee Shop", "address": "123 Main St", "description": "Great coffee and ambiance.", "image": "http://example.com/coffee.jpg"},
-            {"id": 2, "name": "Zen Spa", "address": "456 Oak Ave", "description": "Relaxing massage and wellness services.", "image": "http://example.com/spa.jpg"},
-            {"id": 3, "name": "Quick Bites Diner", "address": "789 Pine Ln", "description": "Classic American comfort food.", "image": "http://example.com/diner.jpg"}
-        ]
-
-    # 記錄推薦事件，發送至 Django 後端
-    log_recommendation_event(user_id, recommended_merchants_data, ab_variant)
-    return recommended_merchants_data
-```
-
-### Vue.js 前端 - 首頁 (`frontend/src/views/HomeView.vue`)
-```vue
-<script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
-import RecommendationService from '@/services/recommendation.service';
-
-const authStore = useAuthStore();
-const router = useRouter();
-const recommendedMerchants = ref([]);
-const isLoadingRecommendations = ref(false);
-
-const fetchRecommendations = async () => {
-  if (!authStore.isAuthenticated) return; // 未登入不顯示推薦
-  isLoadingRecommendations.value = true;
-  try {
-    recommendedMerchants.value = await RecommendationService.getRecommendations();
-  } catch (err) {
-    console.error("Error fetching recommendations:", err);
-  } finally {
-    isLoadingRecommendations.value = false;
-  }
-};
-
-const viewMerchantDetail = (merchantId) => {
-  router.push({ name: 'merchant-detail', params: { id: merchantId } });
-};
-
-onMounted(fetchRecommendations);
-</script>
-
-<template>
-  <div class="home-view">
-    <!-- 顯示歡迎訊息與平台簡介 -->
-    <div class="jumbotron text-center">
-      <h1 class="display-4">歡迎使用預約平台</h1>
-      <p class="lead">輕鬆預約您喜愛的服務，探索優質商家！</p>
-      <router-link v-if="!authStore.isAuthenticated" to="/register" class="btn btn-primary btn-lg">立即註冊</router-link>
-    </div>
-
-    <!-- 顯示推薦商家 -->
-    <h2 class="mt-5 mb-4 text-center">為您推薦的商家</h2>
-    <div v-if="isLoadingRecommendations" class="text-center my-5">
-      <div class="spinner-border text-primary" role="status">
-        <span class="visually-hidden">載入中...</span>
-      </div>
-    </div>
-    <div v-else-if="recommendedMerchants.length > 0" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
-      <div class="col" v-for="merchant in recommendedMerchants" :key="merchant.id">
-        <div class="card h-100 shadow-sm">
-          <div class="card-body d-flex flex-column">
-            <h5 class="card-title">{{ merchant.name }}</h5>
-            <p class="card-text text-muted">{{ merchant.address }}</p>
-            <p class="card-text">{{ merchant.description?.substring(0, 100) }}...</p>
-            <button @click="viewMerchantDetail(merchant.id)" class="btn btn-outline-primary mt-auto">查看詳情</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div v-else class="alert alert-info text-center">
-      目前無推薦商家，立即探索所有商家！
-    </div>
-  </div>
-</template>
-
-<style scoped>
-.jumbotron {
-  background-color: #f8f9fa;
-  padding: 3rem;
-}
-</style>
-```
-
-## 注意事項
-1. **安全性**：
-   - 正式環境需更新 `.env_backend` 與 `.env_fastapi` 的密碼與密鑰。
-   - MySQL 與 Grafana 預設密碼（`root_password`、`admin/admin`）需立即更改。
-   - 設定 `DJANGO_DEBUG=False` 避免暴露敏感資訊。
-
-2. **監控設定**：
-   - Prometheus 與 Grafana 需自行配置 `prometheus.yml` 與儀表板。
-   - 建議在 Django 與 FastAPI 啟用 `django-prometheus` 與 `prometheus-fastapi-instrumentator`。
-
-3. **前端部署**：
-   - 部署前執行 `npm run build`，確保 Nginx 指向 `frontend/dist`。
-   - 確認 `CORS_ALLOWED_ORIGINS` 包含正確前端域名。
-
-4. **資料庫初始化**：
-   - 自訂模型需在 `backend/apps/*/models.py` 定義並執行遷移。
-   - 可在 `mysql_init_scripts/` 加入初始資料。
-
-5. **推薦引擎**：
-   - 目前為模擬邏輯，實際應用需整合機器學習或資料庫查詢。
-   - A/B 測試配置可透過 `.env_fastapi` 的 `AB_TEST_STRATEGY_VARIANTS` 調整。
-
-## 下一步
-- 補充 Django 應用中的模型與 API（`apps/users`、`apps/merchants`、`apps/appointments`）。
-- 為 FastAPI 整合真實推薦演算法。
-- 配置 Grafana 儀表板，新增監控指標。
-- 測試跨瀏覽器相容性，確保前端正常運作。
-
-如需進一步協助，請提供更多專案細節，祝開發順利！
+        return "de
