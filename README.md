@@ -5,6 +5,14 @@
 
 設計上以簡潔實用為主，適合學習或作為快速原型開發的參考。
 
+## 專案亮點
+- **模組化架構**：採用 Django REST Framework 與 FastAPI 分離核心業務與推薦引擎，確保高可維護性與擴展性。
+- **個人化推薦**：FastAPI 推薦引擎支援 A/B 測試與 Redis 快取，提供高效能的個人化商家推薦。
+- **現代化前端**：Vue.js 搭配 Pinia 與 Bootstrap，提供流暢且響應式的使用者體驗。
+- **全面監控**：整合 Prometheus 與 Grafana，提供系統效能與業務指標的即時監控。
+- **安全認證**：使用 JWT 實現跨服務的統一認證，確保資料安全。
+- **容器化部署**：支援 Docker 與 Docker Compose，簡化開發與生產環境部署。
+
 ## 系統架構
 以下是系統架構圖，展示模組間關係：
 
@@ -49,7 +57,7 @@ graph TD
 
 ## 安裝與部署
 
-**注意**：本倉庫僅提供關鍵代碼，需自行補充 `docker-compose.yml`、環境變數檔案（`.env_backend`、`.env_fastapi`）及其他資源。以下為參考指引，實際部署需根據你的環境調整。
+**注意**：本倉庫僅提供關鍵代碼，需自行補充環境變數檔案（`.env_backend`、`.env_fastapi`）及其他資源。以下為參考指引，實際部署需根據你的環境調整。
 
 ### 1. 複製專案
 ```bash
@@ -57,109 +65,7 @@ git clone https://github.com/BpsEason/booking-platform-django-fastapi.git
 cd booking-platform-django-fastapi
 ```
 
-### 2. 建立 Docker Compose 檔案
-由於倉庫未包含 `docker-compose.yml`，建議自行建立一個基本檔案，範例如下：
-
-```yaml
-version: '3.8'
-services:
-  django_backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
-      - DATABASE_HOST=db
-    depends_on:
-      - db
-      - redis
-    volumes:
-      - ./backend:/app
-  fastapi_recommendation:
-    build:
-      context: ./recommendation_engine
-      dockerfile: Dockerfile
-    ports:
-      - "8001:8001"
-    environment:
-      - JWT_SIGNING_KEY=${JWT_SIGNING_KEY}
-      - REDIS_HOST=redis
-    depends_on:
-      - redis
-    volumes:
-      - ./recommendation_engine:/app
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    ports:
-      - "5173:5173"
-    volumes:
-      - ./frontend:/app
-  db:
-    image: mysql:8.0
-    environment:
-      - MYSQL_DATABASE=${DATABASE_NAME}
-      - MYSQL_USER=${DATABASE_USER}
-      - MYSQL_PASSWORD=${DATABASE_PASSWORD}
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
-    ports:
-      - "3306:3306"
-    volumes:
-      - mysql_data:/var/lib/mysql
-  redis:
-    image: redis:7.0
-    ports:
-      - "6379:6379"
-  nginx:
-    image: nginx:1.21
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
-      - ./frontend/dist:/usr/share/nginx/html
-    depends_on:
-      - django_backend
-      - fastapi_recommendation
-      - frontend
-  prometheus:
-    image: prom/prometheus:v2.37.0
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-  grafana:
-    image: grafana/grafana:8.5.9
-    ports:
-      - "3000:3000"
-volumes:
-  mysql_data:
-```
-
-自行建立 `Dockerfile` 與 `nginx.conf`，並確保環境變數檔案（`.env`）包含以下變數：
-
-```env
-# .env_backend
-DJANGO_SECRET_KEY=your-django-secret-key
-DJANGO_DEBUG=True
-DATABASE_NAME=booking_db
-DATABASE_USER=booking_user
-DATABASE_PASSWORD=your-db-password
-DATABASE_HOST=db
-DATABASE_PORT=3306
-FRONTEND_URL=http://localhost:5173
-
-# .env_fastapi
-JWT_SIGNING_KEY=your-jwt-secret-key
-REDIS_HOST=redis
-REDIS_PORT=6379
-REDIS_PASSWORD=
-AB_TEST_STRATEGY_VARIANTS={"default": 1.0}
-```
-
-### 3. 啟動服務
+### 2. 啟動服務
 在專案根目錄執行：
 ```bash
 docker-compose up --build
@@ -174,7 +80,7 @@ docker-compose up --build
   - 9090（Prometheus）
   - 3000（Grafana）
 
-### 4. 安裝前端依賴
+### 3. 安裝前端依賴
 進入前端目錄並安裝：
 ```bash
 cd frontend
@@ -191,7 +97,7 @@ npm run dev
 npm run build
 ```
 
-### 5. 初始化資料庫
+### 4. 初始化資料庫
 執行 Django 資料庫遷移：
 ```bash
 docker exec -it booking-platform-django-fastapi_django_backend python manage.py migrate
@@ -199,7 +105,7 @@ docker exec -it booking-platform-django-fastapi_django_backend python manage.py 
 
 若需初始資料，可在 `mysql_init_scripts/` 放置 SQL 檔案並重新啟動 MySQL 容器。
 
-### 6. 存取服務
+### 5. 存取服務
 - 前端：`http://localhost`
 - Django Admin：`http://localhost/admin`（需自行設定帳號）
 - FastAPI 文件：`http://localhost:8001/docs`
