@@ -1,62 +1,87 @@
-# Python / Django
-*.pyc
+# ----------------------
+# 🐍 Python / Django
 __pycache__/
+*.pyc
 *.pyo
 *.pyd
-.Python
-env/
-venv/
-ENV/
+.env
 *.sqlite3
-db.sqlite3
-/media/
-/staticfiles/
-/backend/.env*
-.django-debug.log
-
-# FastAPI / Redis
 *.log
-/recommendation_engine/.env*
-/redis_data/
+*.pid
+*.swp
+*.bak
 
-# Node.js / Vue.js
+# Django static and media files
+/media/
+staticfiles/
+
+# Django environment files
+.env_backend
+backend/.env*
+backend/env/
+backend/venv/
+
+# ----------------------
+# ⚡ FastAPI
+recommendation_engine/.env*
+recommendation_engine/__pycache__/
+recommendation_engine/*.pyc
+
+# ----------------------
+# 🌐 Vue / Vite (Frontend)
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-frontend/.env*
+dist/
+.vite/
+.env.local
+.env.development
+.env.production
+.env.*
+*.log
+
+# Frontend cache
+frontend/node_modules/
 frontend/dist/
+frontend/.env*
 frontend/.vite/
 frontend/.cache/
 
-# Docker / Compose
+# ----------------------
+# 🐳 Docker / Compose
 docker_volumes/
-*.pid
-*.sock
-.docker/
-.dockerignore
 docker-compose.override.yml
-.env
-*.env
+docker-compose.dev.yml
+docker-compose.prod.yml
+*.pem
+*.crt
+*.key
 
-# VSCode / IDEs
+# MySQL and Redis persisted data
+docker_volumes/mysql_data/
+docker_volumes/redis_data/
+docker_volumes/prometheus_data/
+docker_volumes/grafana_data/
+
+# Prometheus and Grafana temp
+prometheus/*.db
+grafana/*.db
+*.sqlite
+*.prom
+
+# ----------------------
+# 💻 IDE / System
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Test / Coverage
-coverage/
-htmlcov/
-*.cover
-*.py,cover
-.tox/
-.nox/
-.pytest_cache/
-nosetests.xml
-coverage.xml
-*.log
-
-# Mac / OS 系統檔案
 .DS_Store
 Thumbs.db
+
+# ----------------------
+# 📈 Coverage / Testing
+htmlcov/
+coverage.xml
+.pytest_cache/
+.tox/
+.nox/
+nosetests.xml
+.cache/
+*.cover
+*.coverage
