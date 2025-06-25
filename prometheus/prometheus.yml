@@ -1,0 +1,26 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  - job_name: 'django_backend'
+    # For Django, you need to install django-prometheus and configure it to expose metrics.
+    # Make sure to uncomment and install 'django-prometheus' in backend/requirements.txt
+    # and add 'prometheus_client' to core_project/urls.py.
+    # e.g., path('metrics/', include('prometheus_client.urls')),
+    static_configs:
+      - targets: ['django_backend:8000'] # Target Django service in Docker network
+
+  - job_name: 'fastapi_recommendation'
+    # For FastAPI, you need to install prometheus-fastapi-instrumentator.
+    # Make sure to uncomment and install 'prometheus-fastapi-instrumentator' in recommendation_engine/requirements.txt
+    # and initialize Instrumentator in recommendation_engine/main.py.
+    static_configs:
+      - targets: ['fastapi_recommendation:8001'] # Target FastAPI service in Docker network
+
+  - job_name: 'mysql_exporter'
+    static_configs:
+      - targets: ['mysql_exporter:9104']
