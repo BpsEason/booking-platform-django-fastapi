@@ -10,18 +10,26 @@
 
 ```mermaid
 graph TD
-    A[客戶端瀏覽器] -->|HTTP/HTTPS| B(Nginx)
-    B -->|反向代理| C[Django 後端]
-    B -->|反向代理| D[FastAPI 推薦引擎]
-    B -->|靜態檔案| E[Vue.js 前端]
-    C -->|SQL 查詢| F[MySQL 資料庫]
-    C -->|快取/佇列| G[Redis]
-    D -->|快取| G
-    C -->|內部 API 呼叫| D
-    H[Prometheus] -->|收集指標| C
-    H -->|收集指標| D
-    H -->|收集指標| I[MySQL 匯出器]
-    J[Grafana] -->|查詢| H
+    subgraph 前端層
+        A[客戶端瀏覽器] -->|HTTP/HTTPS| B(Nginx)
+        B -->|靜態檔案| E[Vue.js 前端]
+    end
+    subgraph 後端層
+        B -->|反向代理| C[Django 後端]
+        B -->|反向代理| D[FastAPI 推薦引擎]
+        C -->|內部 API 呼叫| D
+    end
+    subgraph 資料層
+        C -->|SQL 查詢| F[MySQL 資料庫]
+        C -->|快取/佇列| G[Redis]
+        D -->|快取| G
+    end
+    subgraph 監控層
+        H[Prometheus] -->|收集指標| C
+        H -->|收集指標| D
+        H -->|收集指標| I[MySQL 匯出器]
+        J[Grafana] -->|查詢| H
+    end
 ```
 
 ### 架構說明
