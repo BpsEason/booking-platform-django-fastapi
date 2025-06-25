@@ -18,8 +18,8 @@ graph TD
     C -->|Cache/Queue| G[Redis]
     D -->|Cache| G
     C -->|Internal API Calls| D
-    H[Prometheus] --> |Scrape Metrics] C
-    H --> |Scrape Metrics| D
+    H[Prometheus] -->|Scrape Metrics| C
+    H -->|Scrape Metrics| D
     H -->|Scrape Metrics| I[MySQL Exporter]
     J[Grafana] -->|Query| H
 ```
