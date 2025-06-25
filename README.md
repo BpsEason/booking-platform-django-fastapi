@@ -330,4 +330,149 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> TokenData:
 # 簡單的 A/B 測試邏輯，根據 user_id 分配測試組
 def get_ab_test_variant(user_id: int) -> str:
     if not AB_TEST_STRATEGY_VARIANTS:
-        return "de
+        return "default"
+    variants = list(AB_TEST_STRATEGY_VARIANTS.keys())
+    weights = list(AB_TEST_STRATEGY_VARIANTS.values())
+    random.seed(user_id)
+    return random.choices(variants, weights=weights, k=1)[0]
+
+# 推薦端點，根據使用者取得商家推薦
+@app.get("/get-recommendations/", response_model=List[Dict])
+async def get_recommendations(current_user: TokenData = Depends(get_current_user)):
+    user_id = current_user.user_id
+    user_type = current_user.user_type
+    
+    if user_type == 'merchant_admin':
+        return JSONResponse(content=[], status_code=status.HTTP_200_OK)
+
+    ab_variant = get_ab_test_variant(user_id)
+    print(f"User {user_id} is in A/B test variant: {ab_variant}")
+
+    # 模擬推薦邏輯，從 Redis 取得快取資料或生成預設資料
+    recommended_merchants_data = []
+    if r:
+        dummy_merchants_json = r.get("dummy_recommended_merchants")
+        if dummy_merchants_json:
+            recommended_merchants_data = json.loads(dummy_merchants_json)
+        else:
+            recommended_merchants_data = [
+                {"id": 1, "name": "Cozy Coffee Shop", "address": "123 Main St", "description": "Great coffee and ambiance.", "image": "http://example.com/coffee.jpg"},
+                {"id": 2, "name": "Zen Spa", "address": "456 Oak Ave", "description": "Relaxing massage and wellness services.", "image": "http://example.com/spa.jpg"},
+                {"id": 3, "name": "Quick Bites Diner", "address": "789 Pine Ln", "description": "Classic American comfort food.", "image": "http://example.com/diner.jpg"}
+            ]
+            r.set("dummy_recommended_merchants", json.dumps(recommended_merchants_data), ex=3600)
+    else:
+        recommended_merchants_data = [
+            {"id": 1, "name": "Cozy Coffee Shop", "address": "123 Main St", "description": "Great coffee and ambiance.", "image": "http://example.com/coffee.jpg"},
+            {"id": 2, "name": "Zen Spa", "address": "456 Oak Ave", "description": "Relaxing massage and wellness services.", "image": "http://example.com/spa.jpg"},
+            {"id": 3, "name": "Quick Bites Diner", "address": "789 Pine Ln", "description": "Classic American comfort food.", "image": "http://example.com/diner.jpg"}
+        ]
+
+    # 記錄推薦事件，發送至 Django 後端
+    log_recommendation_event(user_id, recommended_merchants_data, ab_variant)
+    return recommended_merchants_data
+```
+
+### Vue.js 前端 - 首頁 (`frontend/src/views/HomeView.vue`)
+```vue
+<script setup>
+import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import RecommendationService from '@/services/recommendation.service';
+
+const authStore = useAuthStore();
+const router = useRouter();
+const recommendedMerchants = ref([]);
+const isLoadingRecommendations = ref(false);
+
+const fetchRecommendations = async () => {
+  if (!authStore.isAuthenticated) return; // 未登入不顯示推薦
+  isLoadingRecommendations.value = true;
+  try {
+    recommendedMerchants.value = await RecommendationService.getRecommendations();
+  } catch (err) {
+    console.error("Error fetching recommendations:", err);
+  } finally {
+    isLoadingRecommendations.value = false;
+  }
+};
+
+const viewMerchantDetail = (merchantId) => {
+  router.push({ name: 'merchant-detail', params: { id: merchantId } });
+};
+
+onMounted(fetchRecommendations);
+</script>
+
+<template>
+  <div class="home-view">
+    <!-- 顯示歡迎訊息與平台簡介 -->
+    <div class="jumbotron text-center">
+      <h1 class="display-4">歡迎使用預約平台</h1>
+      <p class="lead">輕鬆預約您喜愛的服務，探索優質商家！</p>
+      <router-link v-if="!authStore.isAuthenticated" to="/register" class="btn btn-primary btn-lg">立即註冊</router-link>
+    </div>
+
+    <!-- 顯示推薦商家 -->
+    <h2 class="mt-5 mb-4 text-center">為您推薦的商家</h2>
+    <div v-if="isLoadingRecommendations" class="text-center my-5">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">載入中...</span>
+      </div>
+    </div>
+    <div v-else-if="recommendedMerchants.length > 0" class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+      <div class="col" v-for="merchant in recommendedMerchants" :key="merchant.id">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body d-flex flex-column">
+            <h5 class="card-title">{{ merchant.name }}</h5>
+            <p class="card-text text-muted">{{ merchant.address }}</p>
+            <p class="card-text">{{ merchant.description?.substring(0, 100) }}...</p>
+            <button @click="viewMerchantDetail(merchant.id)" class="btn btn-outline-primary mt-auto">查看詳情</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div v-else class="alert alert-info text-center">
+      目前無推薦商家，立即探索所有商家！
+    </div>
+  </div>
+</template>
+
+<style scoped>
+.jumbotron {
+  background-color: #f8f9fa;
+  padding: 3rem;
+}
+</style>
+```
+
+## 注意事項
+1. **安全性**：
+   - 正式環境需更新 `.env_backend` 與 `.env_fastapi` 的密碼與密鑰。
+   - MySQL 與 Grafana 預設密碼（`root_password`、`admin/admin`）需立即更改。
+   - 設定 `DJANGO_DEBUG=False` 避免暴露敏感資訊。
+
+2. **監控設定**：
+   - Prometheus 與 Grafana 需自行配置 `prometheus.yml` 與儀表板。
+   - 建議在 Django 與 FastAPI 啟用 `django-prometheus` 與 `prometheus-fastapi-instrumentator`。
+
+3. **前端部署**：
+   - 部署前執行 `npm run build`，確保 Nginx 指向 `frontend/dist`。
+   - 確認 `CORS_ALLOWED_ORIGINS` 包含正確前端域名。
+
+4. **資料庫初始化**：
+   - 自訂模型需在 `backend/apps/*/models.py` 定義並執行遷移。
+   - 可在 `mysql_init_scripts/` 加入初始資料。
+
+5. **推薦引擎**：
+   - 目前為模擬邏輯，實際應用需整合機器學習或資料庫查詢。
+   - A/B 測試配置可透過 `.env_fastapi` 的 `AB_TEST_STRATEGY_VARIANTS` 調整。
+
+## 下一步
+- 補充 Django 應用中的模型與 API（`apps/users`、`apps/merchants`、`apps/appointments`）。
+- 為 FastAPI 整合真實推薦演算法。
+- 配置 Grafana 儀表板，新增監控指標。
+- 測試跨瀏覽器相容性，確保前端正常運作。
+
+如需進一步協助，請提供更多專案細節，祝開發順利！
