@@ -1,5 +1,9 @@
 # Booking Platform 專案說明文件
 
+![Docker Ready](https://img.shields.io/badge/docker-ready-blue)
+![Vue 3](https://img.shields.io/badge/vue-3.x-brightgreen)
+![Django](https://img.shields.io/badge/django-4.x-blueviolet)
+
 ## 專案概述
 這是一個輕量的預約平台，旨在提供商家管理、預約服務與後台管理功能。本倉庫包含核心代碼片段，主要展示 Django REST Framework（主後端）、FastAPI（推薦引擎）與 Vue.js（前端）結合的技術實現。資料庫使用 MySQL，搭配 Redis 進行快取與訊息佇列處理。監控方面預設使用 Prometheus 與 Grafana。此專案僅提供關鍵代碼，需自行補充其他與資源才能完整運行。
 
